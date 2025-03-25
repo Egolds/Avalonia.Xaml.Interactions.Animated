@@ -218,6 +218,19 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
             return;
         }
 
+        if (scp == null)
+        {
+            scp = AssociatedObject!.GetVisualDescendants()
+                .OfType<ScrollContentPresenter>()
+                .FirstOrDefault(s => s.Name == "PART_ContentPresenter");
+        }
+
+        if (scp == null)
+        {
+            e.Handled = true;
+            return;
+        }
+
         var delta = e.Delta;
         var x = scp!.Offset.X;
         var y = scp!.Offset.Y;
