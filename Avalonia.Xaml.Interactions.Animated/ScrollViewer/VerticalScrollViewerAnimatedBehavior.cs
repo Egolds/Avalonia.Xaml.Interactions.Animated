@@ -62,7 +62,7 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
     protected override void OnAttached()
     {
         base.OnAttached();
-        AssociatedObject!.AddHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
+        AssociatedObject!.AddHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
         AssociatedObject!.SetValue(ScrollChangeSizeProperty, ChangeSize.Line);
 
         AssociatedObject.Loaded += AssociatedObject_Loaded;
@@ -78,11 +78,9 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
     {
         if (AssociatedObject == null) return;
 
-        scp = AssociatedObject.GetVisualDescendants()
-            .OfType<ScrollContentPresenter>()
-            .FirstOrDefault(s => s.Name == "PART_ContentPresenter");
+        scp = AssociatedObject?.Presenter as ScrollContentPresenter;
 
-        AssociatedObject.Loaded -= AssociatedObject_Loaded;
+        AssociatedObject!.Loaded -= AssociatedObject_Loaded;
     }
 
     #region ScrollContentPresenter
@@ -214,26 +212,55 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
     {
         if (!IsEnabled)
         {
-            e.Handled = true;
+            e.Handled = !scp?.IsScrollChainingEnabled ?? false;
             return;
         }
 
         if (scp == null)
         {
-            scp = AssociatedObject!.GetVisualDescendants()
-                .OfType<ScrollContentPresenter>()
-                .FirstOrDefault(s => s.Name == "PART_ContentPresenter");
+            scp = AssociatedObject?.Presenter as ScrollContentPresenter;
         }
 
         if (scp == null)
         {
-            e.Handled = true;
+            e.Handled = !scp?.IsScrollChainingEnabled ?? false;
             return;
+        }
+
+        var src = e.Source;
+        while (src != null && src != scp)
+        {
+            if (src is ScrollContentPresenter scp2)
+            {
+                if (scp2 == scp)
+                    break;
+
+                if (e.Delta.Y > 0 && scp2.Offset.Y == 0 ||
+                    e.Delta.Y < 0 && scp2.Offset.Y == scp2!.Extent.Height - scp2!.Viewport.Height) // scroll up or down & it's max
+                {
+                    src = scp2.GetVisualParent(); // take next parent
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            if (src is Visual visual)
+                src = visual.GetVisualParent();
+        }
+
+        if (src != scp)
+        {
+            e.Handled = !(src as ScrollContentPresenter)?.IsScrollChainingEnabled ?? false;
+            //if (e.Handled)
+                return;
         }
 
         var delta = e.Delta;
         var x = scp!.Offset.X;
         var y = scp!.Offset.Y;
+        var maxOffsetY = scp!.Extent.Height - scp!.Viewport.Height;
 
         var scrollable = scp?.Child as ILogicalScrollable;
         var isLogical = scrollable?.IsLogicalScrollEnabled == true;
@@ -242,7 +269,7 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
             double height = isLogical ? scrollable!.ScrollSize.Height : ScrollStepSize;
             y += -delta.Y * height;
             y = Math.Max(y, 0);
-            y = Math.Min(y, scp!.Extent.Height - scp!.Viewport.Height);
+            y = Math.Min(y, maxOffsetY);
         }
 
         Vector newOffset = SnapOffset(new Vector(x, y), delta, true);
