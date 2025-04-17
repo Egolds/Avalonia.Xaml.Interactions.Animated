@@ -272,7 +272,8 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
             }
         }
 
-        e.Handled = true;
+        bool offsetChanged = newOffset != scp.Offset;
+        e.Handled = !scp.IsScrollChainingEnabled || offsetChanged;
     }
 
     private void AnimateScroll(double delta)
