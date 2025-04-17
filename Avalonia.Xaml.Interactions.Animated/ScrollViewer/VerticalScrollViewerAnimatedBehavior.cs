@@ -245,9 +245,10 @@ public class VerticalScrollViewerAnimatedBehavior : StyledElementBehavior<Scroll
                     return;
                 }
             }
-
-            if (src is Visual visual)
+            else if (src is Visual visual)
+            {
                 src = visual.GetVisualParent();
+            }
         }
 
         if (src != scp)
