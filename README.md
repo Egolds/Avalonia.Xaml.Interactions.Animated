@@ -1,3 +1,9 @@
+# Repository was moved!
+
+New location is https://github.com/Egolds/Xaml.Behaviors.Interactions.Animated
+
+---
+
 [![Install via NuGet](https://img.shields.io/badge/Install-via%20NuGet-blue)](https://www.nuget.org/packages/Egolds.Avalonia.Xaml.Interactions.Animated)
 
 # Avalonia.Xaml.Interactions.Animated
